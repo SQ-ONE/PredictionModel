@@ -43,5 +43,9 @@ object FeatureComputation {
       val conData = conditionedData.select(expr(index),sum("ConditionedColumn").over(Window.partitionBy(groupByColumn).rowsBetween(Long.MinValue,0)).alias("conditional"+ targetColumn))
       dataInput.join(conData,index)
     }
+    def cumRatio(index: String,numColumn: String,denColumn: String): DataFrame = {
+      val ratioData = data.select(data(index),(data(numColumn)/data(denColumn)).alias("ratio"+numColumn+denColumn))
+      data.join(ratioData,index)
+    }
   }
 }

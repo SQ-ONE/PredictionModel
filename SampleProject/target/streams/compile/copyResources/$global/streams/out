@@ -1,0 +1,3 @@
+[0m[[0mdebug[0m] [0mCopy resource mappings: [0m
+[0m[[0mdebug[0m] [0m	(/home/shridhar/GitHub/PredictionModel/SampleProject/src/main/resources/log4j.properties,/home/shridhar/GitHub/PredictionModel/SampleProject/target/scala-2.11/classes/log4j.properties)[0m
+[0m[[0mdebug[0m] [0m	(/home/shridhar/GitHub/PredictionModel/SampleProject/src/main/resources/sample.csv,/home/shridhar/GitHub/PredictionModel/SampleProject/target/scala-2.11/classes/sample.csv)[0m
