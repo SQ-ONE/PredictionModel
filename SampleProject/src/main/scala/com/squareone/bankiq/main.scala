@@ -31,17 +31,17 @@ object main extends App{
 
   cleanData.show(5)
 
-  val preparedData: DataFrame =  cleanData.drop("Sr_No","RM/ASE/ASM","Rec")
+  val preparedData: DataFrame =  cleanData.drop("Sr_No","Dealer_Name","Rec")
     .deleteRowsWithNull("Collection_Date")
     .convertLowerCase("Region")
     .convertRegionToNumeric("Region")
     .convertCatergoryToFrequency("Product")
-    .convertLowerCase("Dealer_Name")
-    .convertCatergoryToFrequency("Dealer_Name")
+    .convertLowerCase("RM/ASE/ASM")
+    .convertCatergoryToFrequency("RM/ASE/ASM")
 
   preparedData.show(5)
 
-  val wrangledData: DataFrame = preparedData.parseColumnAsDouble(0.00,"Dealer_Name","Product","Invoice_Amount","Region","Gross_Collection",
+  val wrangledData: DataFrame = preparedData.parseColumnAsDouble(0.00,"RM/ASE/ASM","Product","Invoice_Amount","Region","Gross_Collection",
     "Balance_O/s","Usance_till_Collection_Days","Discounting_Tenure","Rate","Disc_Chrges_for_Discouting_Tenure","Early_Collection_Days",
     "Collection_Incentive_on_Amount_Received","Net_Amount_Received").cache()
     //.parseColumnAsDate("ddMMMyy","Invoice_Date")
@@ -50,7 +50,7 @@ object main extends App{
   wrangledData.show(5)
 
   //-----Association Rule Learning (FP matching)---------
-  //FPMatching(wrangledData.select("Product","Early_Collection_Days").limit(100))
+  FPMatching(wrangledData.select("Product","Early_Collection_Days").limit(100))
 
 
   //------------------Model #1 - Analysis Without Dates---------------------------------------
@@ -58,6 +58,6 @@ object main extends App{
 
 
   //------------------Model #2 - Random Forrest-----------------------------------------
-  Model2(wrangledData)
+  //Model2(wrangledData)
 
 }
