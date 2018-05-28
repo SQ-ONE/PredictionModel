@@ -1,6 +1,8 @@
 package com.squareone.bankiq
 
+import com.squareone.bankiq.utility.SparkService
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
 object DataPreparation {
@@ -45,6 +47,11 @@ object DataPreparation {
 
     def deleteRowsWithNull(column: String*): DataFrame = {
       data.na.drop(column)
+    }
+
+    def removeRepitition(key: String,orderBy: String): DataFrame = {
+      data.withColumn("rowNumber",row_number.over(Window.partitionBy(key).orderBy(orderBy)))
+        .where("rowNumber == 1").drop("rowNumber")
     }
 
     def convertCatergoryToFrequency(colName: String): DataFrame = {

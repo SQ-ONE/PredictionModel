@@ -16,6 +16,9 @@ object DataWrangling {
     def parseColumnAsDouble(fill: Double,column: String*): DataFrame={
       column.foldLeft(data){(memoDB,colName) => parseAsDouble(memoDB,colName,fill)}
     }
+    def limitDecimal(column: String*): DataFrame = {
+      column.foldLeft(data){(memoDB,colName) => memoDB.withColumn(colName,bround(memoDB(colName),2))}
+    }
     def parseAllColumnsAsDouble(fill: Double): DataFrame = {
       parseColumnAsDouble(fill,data.columns: _*)
     }

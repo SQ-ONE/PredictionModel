@@ -6,58 +6,64 @@ import com.squareone.bankiq.DataWrangling._
 import com.squareone.bankiq.FeatureComputation._
 import com.squareone.bankiq.NormalizeFuctions._
 import com.squareone.bankiq.ModelEvaluator._
+import com.squareone.bankiq.utility.SparkService
+import com.typesafe.config.ConfigFactory
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.stat.Correlation
 import org.apache.spark.mllib.linalg.Matrix
 import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.cassandra._
+import org.apache.spark.sql.expressions.Window
+import scala.reflect.runtime.{universe => ru}
+import ru._
 
 
 object main extends App{
+  private val config = ConfigFactory.load( "application.conf" )
   val spark = SparkService.createSparkSession()
   val sqlContext = spark.sqlContext
+  import spark.implicits._
 
-  val file = sqlContext.read.option("header","true").csv("/home/shridhar/Desktop/SampleProject/src/main/resources/sample.csv").cache()
+  val tableForData = config.getConfig("dbTables").getString("db.cassandra.data")
+  val keyspace = config.getConfig("dbTables").getString("db.cassandra.keySpace")
 
-  file.show(5)
+  val file = spark.read.cassandraFormat(tableForData, keyspace).load().drop("period","year","month").as[MIS_Initial]
 
-  val cleanData: DataFrame = file.removeSpaceFromHeader
-    .removeAllSpaces
-    .removeHyphen("Balance_O/s", "Collection_Incentive_on_Amount_Received", "Net_Amount_Received")
-    .removePercent("Rate")
-    .removeParenthesis("Gross_Collection", "Usance_till_Collection_Days", "Disc_Chrges_for_Discouting_Tenure",
-    "Early_Collection_Days", "Collection_Incentive_on_Amount_Received", "Net_Amount_Received")
-    .removeComma("Invoice_Amount","Gross_Collection", "Usance_till_Collection_Days", "Disc_Chrges_for_Discouting_Tenure",
-      "Early_Collection_Days", "Collection_Incentive_on_Amount_Received", "Net_Amount_Received")
+  val relevantData = file.toDF().deleteRowsWithNull("collection_date").removeRepitition("invoice_no","invoice_amount")
 
-  cleanData.show(5)
+  val cleanData: DataFrame = relevantData.removeAllSpaces
+    .removeHyphen("balance_os", "collection_incentive_on_amount_received", "net_amount_received")
+    .removePercent("rate")
+    .removeParenthesis("gross_collection", "usance_till_collection_days", "disc_chrges_for_discouting_tenure",
+    "early_collection_days", "collection_incentive_on_amount_received", "net_amount_received")
+    .removeComma("invoice_amount","gross_collection", "usance_till_collection_days", "disc_chrges_for_discouting_tenure",
+      "early_collection_days", "collection_incentive_on_amount_received", "net_amount_received")
 
-  val preparedData: DataFrame =  cleanData.drop("Sr_No","Dealer_Name","Rec")
-    .deleteRowsWithNull("Collection_Date")
-    .convertLowerCase("Region")
-    .convertRegionToNumeric("Region")
-    .convertCatergoryToFrequency("Product")
-    .convertLowerCase("RM/ASE/ASM")
-    .convertCatergoryToFrequency("RM/ASE/ASM")
+  val wrangledData: DataFrame = cleanData.parseColumnAsDouble(0.00,"invoice_amount","balance_os","usance_till_collection_days",
+    "discounting_tenure","rate","disc_chrges_for_discouting_tenure","early_collection_days","collection_incentive_on_amount_received",
+    "net_amount_received","gross_collection").cache()
 
-  preparedData.show(5)
+  val dataInMIS = wrangledData.as[MIS]
 
-  val wrangledData: DataFrame = preparedData.parseColumnAsDouble(0.00,"RM/ASE/ASM","Product","Invoice_Amount","Region","Gross_Collection",
-    "Balance_O/s","Usance_till_Collection_Days","Discounting_Tenure","Rate","Disc_Chrges_for_Discouting_Tenure","Early_Collection_Days",
-    "Collection_Incentive_on_Amount_Received","Net_Amount_Received").cache()
-    //.parseColumnAsDate("ddMMMyy","Invoice_Date")
-    //.parseColumnAsDate("dd-MMM-yy","Discounting_Date","Collection_Date","Due_Date")
+  val preparedData: DataFrame =  dataInMIS.toDF()
+    .convertLowerCase("region")
+    .convertRegionToNumeric("region")
+    .convertCatergoryToFrequency("product")
+    .convertLowerCase("rm_ase_asm")
+    .convertCatergoryToFrequency("rm_ase_asm")
 
-  wrangledData.show(5)
-
-  //-----Association Rule Learning (FP matching)---------
-  FPMatching(wrangledData.select("Product","Early_Collection_Days").limit(100))
-
+  preparedData.show()
 
   //------------------Model #1 - Analysis Without Dates---------------------------------------
-  //Model1(wrangledData)
+  val dataForModel1 = preparedData.drop("dealer_name","sr_no","rec")
+  Model1(dataForModel1)
 
 
   //------------------Model #2 - Random Forrest-----------------------------------------
   //Model2(wrangledData)
+
+  //------------------Model #3 - Analysis Without Dates---------------------------------------
+  //Model3(wrangledData)
 
 }

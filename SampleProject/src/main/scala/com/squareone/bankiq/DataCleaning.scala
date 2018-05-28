@@ -1,5 +1,6 @@
 package com.squareone.bankiq
 
+import com.squareone.bankiq.utility.SparkService
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 

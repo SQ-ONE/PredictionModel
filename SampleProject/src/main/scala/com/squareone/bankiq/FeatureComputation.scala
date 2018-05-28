@@ -1,51 +1,74 @@
 package com.squareone.bankiq
 
 import org.apache.spark.sql.{Column, DataFrame}
-import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
 
 object FeatureComputation {
+  val partitionOnPayer = Window.partitionBy("payer").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+  val partitionOnPayerAndProduct = Window.partitionBy("payer","product").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+
+  def getWindowfunction(value: Int) = value match {
+    case 1 => partitionOnPayer
+    case 2 => partitionOnPayerAndProduct
+    case _ => partitionOnPayer
+  }
+
   implicit class compute(data: DataFrame) {
     def cumSum(indexColumn: String,cumColumn: String) = {
       data.select(expr(indexColumn),sum(cumColumn).over(Window.partitionBy(lit(0)).rowsBetween(Long.MinValue, 0)))
     }
-    private def cumSumWithGroupBySingleColumn(index: String,groupByColumn: String, cumColumn: String, dataInput: DataFrame = data): DataFrame = {
-      val cumData = dataInput.select(expr(index),sum(cumColumn).over(Window.partitionBy(groupByColumn).rowsBetween(Long.MinValue,0)).alias("cum"+ cumColumn))
-      dataInput.join(cumData,index)
+    private def cumSumWithGroupBySingleColumn(cumColumn: String, dataInput: DataFrame = data,windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      dataInput.withColumn("cum_"+ cumColumn,sum(cumColumn).over(windowFunction))
     }
-    def cumSumWithGroupBy(index: String,groupByColumn: String,column: String*):DataFrame = {
-      column.foldLeft(data){(memoDF,colName) => cumSumWithGroupBySingleColumn(index,groupByColumn,colName,memoDF)}
+    def cumSumWithGroupBy(column: String*)(windowFunction: WindowSpec = partitionOnPayer):DataFrame = {
+      column.foldLeft(data){(memoDF,colName) => cumSumWithGroupBySingleColumn(colName,memoDF,windowFunction)}
     }
 
-    private def countWithGroupBySingleColumn(index: String,groupByColumn: String, countColumn: String, dataInput: DataFrame = data): DataFrame = {
-      val countData = dataInput.select(expr(index),count(countColumn).over(Window.partitionBy(groupByColumn).rowsBetween(Long.MinValue,0)).alias("count"+ countColumn))
-      dataInput.join(countData,index)
+    private def countWithGroupBySingleColumn(countColumn: String, dataInput: DataFrame = data,windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      dataInput.withColumn("count_"+ countColumn,count(countColumn).over(windowFunction))
     }
-    def countWithGroupBy(index: String,groupByColumn: String,column: String*): DataFrame = {
-      column.foldLeft(data){(memoDF,colName) => countWithGroupBySingleColumn(index,groupByColumn,colName,memoDF)}
+    def countWithGroupBy(column: String*)(windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      column.foldLeft(data){(memoDF,colName) => countWithGroupBySingleColumn(colName,memoDF,windowFunction)}
     }
-    def cumWeightedAverage(index: String,groupByColumn: String,weightColumn: String,valueColumn: String): DataFrame = {
-      val multipliedData = data.select(data(index),data(groupByColumn),(data(weightColumn)*data(valueColumn)).alias("MultipliedColumn"))
-      val countData = multipliedData.select(expr(index),sum("MultipliedColumn").over(Window.partitionBy(groupByColumn)
-        .rowsBetween(Long.MinValue,0)).alias("weighted"+ valueColumn + "Against" + weightColumn))
-      data.join(countData,index)
+    def cumWeightedAverage(weightColumn: String,valueColumn: String)(windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      val multipliedData = data.withColumn("multiplied_column",data(weightColumn)*data(valueColumn))
+      cumSumWithGroupBySingleColumn("multiplied_column",multipliedData)
+        .withColumnRenamed("cum_multipled_column","cum_weighted_"+weightColumn + "_" +valueColumn)
     }
-    private def cumAverageWithGroupBySingleColumn(index: String,groupByColumn: String, avgColumn: String, dataInput: DataFrame = data): DataFrame = {
-      val avgData = dataInput.select(expr(index),avg(avgColumn).over(Window.partitionBy(groupByColumn).rowsBetween(Long.MinValue,0)).alias("avg"+ avgColumn))
-      dataInput.join(avgData,index)
+
+    private def cumAverageWithGroupBySingleColumn(avgColumn: String, dataInput: DataFrame = data,windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      dataInput.withColumn("avg_"+avgColumn,avg(avgColumn).over(windowFunction))
     }
-    def cumAverageWithGroupBy(index: String,groupByColumn: String,column: String*):DataFrame = {
-      column.foldLeft(data){(memoDF,colName) => cumAverageWithGroupBySingleColumn(index,groupByColumn,colName,memoDF)}
+
+    def cumAverageWithGroupBy(column: String*)(windowFunction: WindowSpec = partitionOnPayer):DataFrame = {
+      column.foldLeft(data){(memoDF,colName) => cumAverageWithGroupBySingleColumn(colName,memoDF,windowFunction)}
     }
-    def sumBasedOnCondition(index: String,groupByColumn: String, targetColumn: String, condition: Double => Double,dataInput: DataFrame = data): DataFrame = {
+    def sumBasedOnCondition(cumColumn: String, condition: Double => Double,dataInput: DataFrame = data)(windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
       val udfCondition = udf(condition)
-      val conditionedData = dataInput.select(data(index),data(groupByColumn),udfCondition(data(targetColumn)).alias("ConditionedColumn"))
-      val conData = conditionedData.select(expr(index),sum("ConditionedColumn").over(Window.partitionBy(groupByColumn).rowsBetween(Long.MinValue,0)).alias("conditional"+ targetColumn))
-      dataInput.join(conData,index)
+      val conditionedData = dataInput.withColumn("condition_column",udfCondition(data(cumColumn)))
+      cumSumWithGroupBySingleColumn("condition_column",conditionedData,windowFunction).drop("condition_column")
+        .withColumnRenamed("cum_condition_column","cum_condition_"+ cumColumn)
     }
-    def cumRatio(index: String,numColumn: String,denColumn: String): DataFrame = {
-      val ratioData = data.select(data(index),(data(numColumn)/data(denColumn)).alias("ratio"+numColumn+denColumn))
-      data.join(ratioData,index)
+
+    def cumRatio(numColumn: String,denColumn: String)(windowFunction: WindowSpec = partitionOnPayer): DataFrame = {
+      val divide = udf{(num: Double, den: Double) =>
+        if(den != 0.00) num/den else 0.00
+      }
+      val ratioedData = data.withColumn("ratio_column",divide(data(numColumn),data(denColumn)))
+      cumSumWithGroupBySingleColumn("ratio_column",ratioedData).drop("ratio_column")
+        .withColumnRenamed("cum_ratio_column","cum_ratio_"+numColumn + "_" +denColumn)
+    }
+
+    def calRatio(numColumn: String,denColumn: String) = {
+      val divide = udf{(num: Double, den: Double) =>
+        if(den != 0.00) num/den else 0.00
+      }
+      data.withColumn("ratio_" + numColumn + "_" + denColumn,divide(data(numColumn),data(denColumn)))
+    }
+    def calCondition(colName: String,condition: Double => Double) = {
+      val conditionFunction = udf(condition)
+      data.withColumn("condition_"+colName,conditionFunction(data(colName)))
     }
   }
 }

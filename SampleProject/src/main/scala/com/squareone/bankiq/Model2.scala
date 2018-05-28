@@ -8,18 +8,20 @@ import com.squareone.bankiq.NormalizeFuctions._
 
 object Model2 {
   def apply(wrangledData: DataFrame) = {
-    val dataWithoutDate: DataFrame = wrangledData.drop("Invoice_Date","Discounting_Date","Collection_Date","Due_Date").cache()
+    val dataWithoutDate: DataFrame = wrangledData.drop("invoice_date","discounting_date","collection_date","due_date").cache()
 
     //------Feature Engineering-----------
-    val featuredData :DataFrame = dataWithoutDate.cumSumWithGroupBy("Invoice_No","Payer","Invoice_Amount","Early_Collection_Days","Net_Amount_Received",
-      "Collection_Incentive_on_Amount_Received")
-      .countWithGroupBy("Invoice_No","Payer","Invoice_Amount")
-      .cumWeightedAverage("Invoice_No","Payer","Early_Collection_Days","Invoice_Amount")
+    val featuredData :DataFrame = dataWithoutDate.countWithGroupBy("invoice_amount")()
+      .cumSumWithGroupBy("early_collection_days","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")()
+      .cumRatio("early_collection_days","period")()
 
-    val data = featuredData.drop("Invoice_No","Payer")
+    featuredData.show(5)
+
+    val data = featuredData.drop("invoice_no","payer","balance_os","collection_incentive_on_amount_received",
+      "disc_chrges_for_discouting_tenure","gross_collection","net_amount_received","usance_till_collection_days")
 
     val assembler = new VectorAssembler()
-      .setInputCols(Array(data.columns.filter(x => x != "Early_Collection_Days"): _*))
+      .setInputCols(Array(data.columns.filter(x => x != "early_collection_days"): _*))
       .setOutputCol("features")
 
     val vectorizedData = assembler.transform(data)
