@@ -13,7 +13,7 @@ object Model2 {
     //------Feature Engineering-----------
     val featuredData :DataFrame = dataWithoutDate.countWithGroupBy("invoice_amount")()
       .cumSumWithGroupBy("early_collection_days","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")()
-      .cumRatio("early_collection_days","period")()
+      .cumRatio("early_collection_days","discounting_tenure")()
 
     featuredData.show(5)
 
@@ -40,7 +40,7 @@ object Model2 {
     resultValidatedRFR.show()
     println(resultValidatedRFR.getRMSE)*/
 
-    val normDataMinMax = dataForModel.returnNormData(2).drop("features").withColumnRenamed("normFeatures","features")
+    val normDataMinMax = dataForModel.returnNormData(2)
       val splitNormData = normDataMinMax.randomSplit(Array(0.9, 0.1), seed = 11L)
       val normTrainingData = splitNormData(0).cache()
       val normTestData = splitNormData(1)

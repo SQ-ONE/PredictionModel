@@ -1,9 +1,9 @@
 package com.squareone.bankiq
 
 import java.sql.Date
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
+import java.text.SimpleDateFormat
 
 object DataWrangling {
   implicit class wrangle(data: DataFrame) {
@@ -13,8 +13,18 @@ object DataWrangling {
       }
       data.withColumn(colName,parseDouble(data(colName)))
     }
+    private def parseAsDate(data: DataFrame,colName: String,fill: Date): DataFrame = {
+      val parseDate = udf {(s: String) =>
+        val sdf1 = new SimpleDateFormat("dd-mm-yyyy")
+        try { Some(new Date(sdf1.parse(s).getTime))} catch { case e: Exception => fill }
+      }
+      data.withColumn(colName,parseDate(data(colName)))
+    }
     def parseColumnAsDouble(fill: Double,column: String*): DataFrame={
       column.foldLeft(data){(memoDB,colName) => parseAsDouble(memoDB,colName,fill)}
+    }
+    def parseColumnAsDate(fill: Date,column: String*): DataFrame={
+      column.foldLeft(data){(memoDB,colName) => parseAsDate(memoDB,colName,fill)}
     }
     def limitDecimal(column: String*): DataFrame = {
       column.foldLeft(data){(memoDB,colName) => memoDB.withColumn(colName,bround(memoDB(colName),2))}

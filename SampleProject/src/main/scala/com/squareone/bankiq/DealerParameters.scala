@@ -18,8 +18,8 @@ object DealerParameters {
 
   val dealer = config.getConfig("dbTables").getString("db.cassandra.dealer")
   val keyspace = config.getConfig("dbTables").getString("db.cassandra.keySpace")
-  val renameColumns: Seq[String] = Seq("payer","count","cum_invoice_amount","cum_usance_till_collection_days","cum_early_collection_days"
-    ,"cum_collection_incentive_on_amount_received","cum_ratio_early_collection_days_discounting_tenure","cum_delayed_days")
+  val renameColumns: Seq[String] = Seq("payer","dealer_count","dealer_cum_invoice_amount","dealer_cum_usance_till_collection_days","dealer_cum_early_collection_days"
+    ,"dealer_cum_collection_incentive_on_amount_received","dealer_cum_ratio_early_collection_days_discounting_tenure","dealer_cum_delayed_days")
 
   def getDealerParameters: Dataset[Dealer] = {
     val file: Dataset[Dealer] = Option(spark.read.cassandraFormat(dealer, keyspace).load()) match {

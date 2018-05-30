@@ -12,21 +12,35 @@ object Model1 {
     val dataWithoutDate: DataFrame = wrangledData.drop("invoice_date","discounting_date","collection_date","due_date").cache()
 
     //------Feature Engineering-----------
-    val featuredData :DataFrame = dataWithoutDate.countWithGroupBy("invoice_amount")()
-      .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")()
-      .cumRatio("early_collection_days","discounting_tenure")()
-      .sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)()
-      .withColumnRenamed("count_invoice_amount","count").withColumnRenamed("cum_condition_early_collection_days","cum_delayed_days")
+    val featuredData :DataFrame = dataWithoutDate.countWithGroupBy("invoice_amount")(1)
+      .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")(1)
+      .cumRatio("early_collection_days","discounting_tenure")(1)
+      .sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)(1)
+      .withColumnRenamed("dealer_count_invoice_amount","dealer_count").withColumnRenamed("dealer_cum_condition_early_collection_days","dealer_cum_delayed_days")
 
     featuredData.show(5)
 
-    val dataWithDroppedColumns = featuredData.drop("balance_os","collection_incentive_on_amount_received",
+    val productBasedFeatures = featuredData.countWithGroupBy("invoice_amount")(3)
+      .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")(3)
+      .cumRatio("early_collection_days","discounting_tenure")(3)
+      .sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)(3)
+      .withColumnRenamed("product_count_invoice_amount","product_count").withColumnRenamed("product_cum_condition_early_collection_days","product_cum_delayed_days")
+
+    productBasedFeatures.show(5)
+
+    val managerBasedFeatures = productBasedFeatures.countWithGroupBy("invoice_amount")(4)
+      .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")(4)
+      .cumRatio("early_collection_days","discounting_tenure")(4)
+      .sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)(4)
+      .withColumnRenamed("manager_count_invoice_amount","manager_count").withColumnRenamed("manager_cum_condition_early_collection_days","manager_cum_delayed_days")
+
+    val dataWithDroppedColumns = managerBasedFeatures.drop("balance_os","collection_incentive_on_amount_received",
       "disc_chrges_for_discouting_tenure","gross_collection","net_amount_received","usance_till_collection_days")
 
-    val extendedFeatures = dataWithDroppedColumns.calRatio("cum_invoice_amount","count").calRatio("cum_early_collection_days","count")
-      .calRatio("cum_delayed_days","count").calRatio("cum_collection_incentive_on_amount_received","count")
+    val extendedDealerFeatures = dataWithDroppedColumns.calRatio("dealer_cum_invoice_amount","dealer_count").calRatio("dealer_cum_early_collection_days","dealer_count")
+      .calRatio("dealer_cum_delayed_days","dealer_count").calRatio("dealer_cum_collection_incentive_on_amount_received","dealer_count")
 
-    val data = dataWithDroppedColumns.drop("invoice_no","payer")
+    val data = dataWithDroppedColumns.drop("invoice_no","payer","product","rm_ase_asm")
 
     val assembler = new VectorAssembler()
       .setInputCols(Array(data.columns.filter(x => x != "early_collection_days"): _*))
@@ -44,19 +58,19 @@ object Model1 {
     //LinearRegressionModel(trainingData,testData)
 
     //Linear Regression Using Validation
-    val resultValidatedLR = TrainValidationForLR(trainingData,testData)
+/*    val resultValidatedLR = TrainValidationForLR(trainingData,testData)
     resultValidatedLR.show()
-    println(resultValidatedLR.getRMSE)
+    println(resultValidatedLR.getRMSE)*/
 
     //------------ Using normalized data-----------------
-/*    val normDataMinMax = dataForModel.minMaxScaledData.drop("features").withColumnRenamed("scaledFeatures","features")
+    val normDataMinMax = dataForModel.returnNormData(2)
       val splitNormData = normDataMinMax.randomSplit(Array(0.9, 0.1), seed = 11L)
       val normTrainingData = splitNormData(0).cache()
       val normTestData = splitNormData(1)
 
       val resultNormValidatedLR = TrainValidationForLR(normTrainingData,normTestData)
       resultNormValidatedLR.show()
-      println(resultNormValidatedLR.getRMSE)*/
+      println(resultNormValidatedLR.getRMSE)
   }
 
 }

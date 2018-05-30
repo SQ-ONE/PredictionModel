@@ -11,7 +11,7 @@ object NormalizeFuctions {
         .setOutputCol("normFeatures")
         .setP(p)
 
-      normalizer.transform(data)
+      normalizer.transform(data).drop("features").withColumnRenamed("normFeatures","features")
     }
     def scaledData(std: Boolean,mean: Boolean): DataFrame ={
       val scaler = new StandardScaler()
@@ -21,7 +21,7 @@ object NormalizeFuctions {
         .setWithMean(mean)
 
       val scalerModel = scaler.fit(data)
-      scalerModel.transform(data)
+      scalerModel.transform(data).drop("features").withColumnRenamed("scaledFeatures","features")
     }
     def minMaxScaledData ={
       val scaler = new MinMaxScaler()
@@ -29,7 +29,7 @@ object NormalizeFuctions {
         .setOutputCol("scaledFeatures")
 
       val scalerModel = scaler.fit(data)
-      scalerModel.transform(data)
+      scalerModel.transform(data).drop("features").withColumnRenamed("scaledFeatures","features")
     }
     def maxAbsScaler = {
       val scaler = new MaxAbsScaler()
@@ -37,7 +37,7 @@ object NormalizeFuctions {
         .setOutputCol("scaledFeatures")
 
       val scalerModel = scaler.fit(data)
-      scalerModel.transform(data)
+      scalerModel.transform(data).drop("features").withColumnRenamed("scaledFeatures","features")
     }
   }
 }

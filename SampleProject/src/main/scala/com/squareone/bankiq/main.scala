@@ -46,24 +46,33 @@ object main extends App{
 
   val dataInMIS = wrangledData.as[MIS]
 
+/*  val abs = udf{(value: Double ) => if(value > 0.00)value else (-1.00 * value)}
+    println(dataInMIS.toDF().select("early_collection_days").withColumn("abs_early_collection_days",abs(dataInMIS("early_collection_days")))
+    .drop("early_collection_days").rdd.map(_(0).asInstanceOf[Double]).reduce(_+_))
+  println(dataInMIS.toDF().count)*/
+
   val preparedData: DataFrame =  dataInMIS.toDF()
     .convertLowerCase("region")
     .convertRegionToNumeric("region")
-    .convertCatergoryToFrequency("product")
-    .convertLowerCase("rm_ase_asm")
-    .convertCatergoryToFrequency("rm_ase_asm")
 
   preparedData.show()
 
   //------------------Model #1 - Analysis Without Dates---------------------------------------
-  val dataForModel1 = preparedData.drop("dealer_name","sr_no","rec")
-  Model1(dataForModel1)
+/*  val dataForModel1 = preparedData.drop("dealer_name","sr_no","rec")
+  Model1(dataForModel1)*/
 
 
   //------------------Model #2 - Random Forrest-----------------------------------------
-  //Model2(wrangledData)
+/*  val preparedDataModified = preparedData.convertCatergoryToFrequency("product")
+    .convertLowerCase("rm_ase_asm")
+    .convertCatergoryToFrequency("rm_ase_asm")
+  val dataForModel2 = preparedDataModified.drop("dealer_name","sr_no","rec")
+  Model2(dataForModel2)*/
 
   //------------------Model #3 - Analysis Without Dates---------------------------------------
-  //Model3(wrangledData)
+  val dataForModel3 = preparedData.drop("dealer_name","sr_no","rec")
+  Model3(dataForModel3)
+
+  //------------------Model #4 = Analysis With Dates----------------
 
 }
