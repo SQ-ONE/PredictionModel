@@ -22,11 +22,7 @@ object DealerParameters {
     ,"dealer_cum_collection_incentive_on_amount_received","dealer_cum_ratio_early_collection_days_discounting_tenure","dealer_cum_delayed_days")
 
   def getDealerParameters: Dataset[Dealer] = {
-    val file: Dataset[Dealer] = Option(spark.read.cassandraFormat(dealer, keyspace).load()) match {
-      case Some(x) => x.as[Dealer]
-      case None => spark.createDataset(sc.emptyRDD[Dealer])
-    }
-    file
+    try(spark.read.cassandraFormat(dealer, keyspace).load().as[Dealer]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Dealer])}
   }
 
   def currentDealerParameters(data: Dataset[MIS]) = {

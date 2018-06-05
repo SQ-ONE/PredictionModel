@@ -10,7 +10,9 @@ import com.typesafe.config.ConfigFactory
 import org.apache.spark.sql.functions._
 import com.squareone.bankiq.DataWrangling._
 
-class ManagerParameters {
+import scala.util.Success
+
+object ManagerParameters {
   private val config = ConfigFactory.load( "application.conf" )
   val spark = SparkService.getSparkSession()
   val sc = spark.sparkContext
@@ -23,16 +25,12 @@ class ManagerParameters {
     "manager_cum_ratio_early_collection_days_discounting_tenure","manager_cum_delayed_days")
 
   def getManagerParameters: Dataset[Manager] = {
-    val file: Dataset[Manager] = Option(spark.read.cassandraFormat(manager, keyspace).load()) match {
-      case Some(x) => x.as[Manager]
-      case None => spark.createDataset(sc.emptyRDD[Manager])
-    }
-    file
+    try(spark.read.cassandraFormat(manager, keyspace).load().as[Manager]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Manager])}
   }
 
   def currentManagerParameters(data: Dataset[MIS]) = {
     val fileParameters = data.toDF().calRatio("early_collection_days","discounting_tenure")
-      .calCondition("early_collection_days",x => if(x>0)x else 0).groupBy("payer").agg(count("invoice_no")
+      .calCondition("early_collection_days",x => if(x>0)x else 0).groupBy("rm_ase_asm").agg(count("invoice_no")
       ,sum("invoice_amount"),sum("usance_till_collection_days"),sum("early_collection_days"),sum("collection_incentive_on_amount_received")
       ,sum("ratio_early_collection_days_discounting_tenure"),sum("condition_early_collection_days"))
     fileParameters.limitDecimal(fileParameters.columns.filter(_ != "rm_ase_asm"): _*).toDF(renameColumns: _*).as[Manager]

@@ -9,7 +9,7 @@ import com.squareone.bankiq.utility._
 import com.squareone.bankiq.FeatureComputation._
 import com.squareone.bankiq.DataWrangling._
 
-class ProductParameters {
+object ProductParameters {
   private val config = ConfigFactory.load( "application.conf" )
   val spark = SparkService.getSparkSession()
   val sc = spark.sparkContext
@@ -21,11 +21,7 @@ class ProductParameters {
     ,"product_cum_collection_incentive_on_amount_received","product_cum_ratio_early_collection_days_discounting_tenure","product_cum_delayed_days")
 
   def getProductParameters: Dataset[Product] = {
-    val file: Dataset[Product] = Option(spark.read.cassandraFormat(product, keyspace).load()) match {
-      case Some(x) => x.as[Product]
-      case None => spark.createDataset(sc.emptyRDD[Product])
-    }
-    file
+    try(spark.read.cassandraFormat(product, keyspace).load().as[Product]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Product])}
   }
 
   def currentProductParameters(data: Dataset[MIS]): Dataset[Product] = {

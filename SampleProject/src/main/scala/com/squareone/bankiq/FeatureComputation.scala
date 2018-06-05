@@ -1,20 +1,28 @@
 package com.squareone.bankiq
 
+import java.sql.Date
+
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions._
+import java.util.Calendar
 
 object FeatureComputation {
   val partitionOnPayer = Window.partitionBy("payer").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
   val partitionOnPayerAndProduct = Window.partitionBy("payer","product").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
   val partitionOnProduct = Window.partitionBy("product").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
   val partitionOnManager = Window.partitionBy("rm_ase_asm").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+  val partitionOnDueMonth = Window.partitionBy("month_due_date").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+  val partitionOnCollectionMonth = Window.partitionBy("month_collection_date").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+
 
   def getWindowfunction(value: Int) = value match {
     case 1 => partitionOnPayer
     case 2 => partitionOnPayerAndProduct
     case 3 => partitionOnProduct
     case 4 => partitionOnManager
+    case 5 => partitionOnDueMonth
+    case 6 => partitionOnCollectionMonth
     case _ => partitionOnPayer
   }
   def getPrefix(value: Int): String = value match {
@@ -22,6 +30,8 @@ object FeatureComputation {
     case 2 => "dealer_product_"
     case 3 => "product_"
     case 4 => "manager_"
+    case 5 => "due_date_month_"
+    case 6 => "collection_date_month_"
     case _ => "dealer_"
   }
   implicit class compute(data: DataFrame) {
@@ -75,6 +85,22 @@ object FeatureComputation {
     def calCondition(colName: String,condition: Double => Double) = {
       val conditionFunction = udf(condition)
       data.withColumn("condition_"+colName,conditionFunction(data(colName)))
+    }
+    private def getMonthFormDateColumn(colName: String, dataInput: DataFrame = data) = {
+      val cal = Calendar.getInstance
+      val monthConverter = udf{(s: Date) => cal.setTime(s); cal.get(Calendar.MONTH)}
+      dataInput.withColumn("month_"+colName,monthConverter(dataInput(colName)))
+    }
+    def getMonthFromDate(column: String*) = {
+      column.foldLeft(data){(memoDB,colName) => getMonthFormDateColumn(colName,memoDB)}
+    }
+    private def getYearFormDateColumn(colName: String, dataInput: DataFrame = data) = {
+      val cal = Calendar.getInstance
+      val yearConverter = udf{(s: Date) => cal.setTime(s); cal.get(Calendar.YEAR)}
+      dataInput.withColumn("year_"+colName,yearConverter(dataInput(colName)))
+    }
+    def getYearFromDate(column: String*) = {
+      column.foldLeft(data){(memoDB,colName) => getYearFormDateColumn(colName,memoDB)}
     }
   }
 }
