@@ -13,7 +13,7 @@ object FeatureComputation {
   val partitionOnProduct = Window.partitionBy("product").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
   val partitionOnManager = Window.partitionBy("rm_ase_asm").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
   val partitionOnDueMonth = Window.partitionBy("month_due_date").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
-  val partitionOnCollectionMonth = Window.partitionBy("month_collection_date").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+  val partitionOnInvoiceMonth = Window.partitionBy("month_invoice_date").orderBy("invoice_no").rowsBetween(Window.unboundedPreceding, Window.currentRow)
 
 
   def getWindowfunction(value: Int) = value match {
@@ -22,7 +22,7 @@ object FeatureComputation {
     case 3 => partitionOnProduct
     case 4 => partitionOnManager
     case 5 => partitionOnDueMonth
-    case 6 => partitionOnCollectionMonth
+    case 6 => partitionOnInvoiceMonth
     case _ => partitionOnPayer
   }
   def getPrefix(value: Int): String = value match {
@@ -31,7 +31,7 @@ object FeatureComputation {
     case 3 => "product_"
     case 4 => "manager_"
     case 5 => "due_date_month_"
-    case 6 => "collection_date_month_"
+    case 6 => "invoice_date_month_"
     case _ => "dealer_"
   }
   implicit class compute(data: DataFrame) {

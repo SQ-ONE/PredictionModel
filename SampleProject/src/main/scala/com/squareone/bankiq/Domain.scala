@@ -21,7 +21,10 @@ case class Product(product: String, product_count: Double,product_cum_invoice_am
 case class Manager(rm_ase_asm: String, manager_count: Double,manager_cum_invoice_amount: Double, manager_cum_usance_till_collection_days: Double, manager_cum_early_collection_days: Double,manager_cum_collection_incentive_on_amount_received: Double,
               manager_cum_ratio_early_collection_days_discounting_tenure: Double, manager_cum_delayed_days: Double)
 
-case class Month(month: String, month_count: Double,month_cum_invoice_amount: Double, month_cum_usance_till_collection_days: Double, month_cum_early_collection_days: Double,month_cum_collection_incentive_on_amount_received: Double,
-                   month_cum_ratio_early_collection_days_discounting_tenure: Double, month_cum_delayed_days: Double)
+case class DueMonth(month_due_date: String, due_month_count: Double,due_month_cum_invoice_amount: Double, due_month_cum_usance_till_collection_days: Double, due_month_cum_early_collection_days: Double,due_month_cum_collection_incentive_on_amount_received: Double,
+                   due_month_cum_ratio_early_collection_days_discounting_tenure: Double, due_month_cum_delayed_days: Double)
 
-case class Invoice(payer: String, invoice_amount: Double,invoice_date: String,due_date: String, discounting_tenure: String, rm: String)
+case class InvoiceMonth(month_invoice_date: String, invoice_month_count: Double,invoice_month_cum_invoice_amount: Double, invoice_month_cum_usance_till_invoice_days: Double, invoice_month_cum_early_invoice_days: Double,invoice_month_cum_invoice_incentive_on_amount_received: Double,
+                    invoice_month_cum_ratio_early_invoice_days_discounting_tenure: Double, invoice_month_cum_delayed_days: Double)
+
+case class Invoice(payer: String, product: String,invoice_amount: Double,invoice_date: String,due_date: String, discounting_tenure: Double, rm_ase_asm: String,rate: Double,region: String)

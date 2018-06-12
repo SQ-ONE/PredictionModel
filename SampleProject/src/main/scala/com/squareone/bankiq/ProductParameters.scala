@@ -2,7 +2,7 @@ package com.squareone.bankiq
 
 import com.squareone.bankiq.utility.SparkService
 import com.typesafe.config.ConfigFactory
-import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.cassandra._
 import com.squareone.bankiq.utility._
@@ -23,26 +23,28 @@ object ProductParameters {
   def getProductParameters: Dataset[Product] = {
     try(spark.read.cassandraFormat(product, keyspace).load().as[Product]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Product])}
   }
-
-  def currentProductParameters(data: Dataset[MIS]): Dataset[Product] = {
-
-    val fileParameters = data.toDF().calRatio("early_collection_days","discounting_tenure")
-      .calCondition("early_collection_days",x => if(x>0)x else 0).groupBy("product").agg(count("invoice_no")
-      ,sum("invoice_amount"),sum("usance_till_collection_days"),sum("early_collection_days"),sum("collection_incentive_on_amount_received")
-      ,sum("ratio_early_collection_days_discounting_tenure"),sum("condition_early_collection_days"))
-    fileParameters.limitDecimal(fileParameters.columns.filter(_ != "product"): _*).toDF(renameColumns: _*).as[Product]
+  implicit class ComputeProduct(data: Dataset[MIS]){
+    def currentProductParameters(data: Dataset[MIS]): Dataset[Product] = {
+      val fileParameters = data.toDF().calRatio("early_collection_days", "discounting_tenure")
+        .calCondition("early_collection_days", x => if (x > 0) x else 0).groupBy("product").agg(count("invoice_no")
+        , sum("invoice_amount"), sum("usance_till_collection_days"), sum("early_collection_days"), sum("collection_incentive_on_amount_received")
+        , sum("ratio_early_collection_days_discounting_tenure"), sum("condition_early_collection_days"))
+      fileParameters.limitDecimal(fileParameters.columns.filter(_ != "product"): _*).toDF(renameColumns: _*).as[Product]
+    }
+    def updateProductParameters(data: Dataset[MIS]) = {
+      val existingParams = getProductParameters
+      val currentFileParams = currentProductParameters(data)
+      val newParams = existingParams.union(currentFileParams).groupBy("product").agg(sum("product_count")
+        ,sum("product_cum_invoice_amount"), sum("product_cum_usance_till_collection_days"), sum("product_cum_early_collection_days")
+        ,sum("product_cum_collection_incentive_on_amount_received"), sum("product_cum_ratio_early_collection_days_discounting_tenure")
+        ,sum("product_cum_delayed_days")).toDF(renameColumns: _*).as[Product]
+      newParams.write.cassandraFormat(product, keyspace)
+    }
   }
-
-  def updateProductParameters(data: Dataset[MIS]) = {
-    val existingParams = getProductParameters
-    val currentFileParams = currentProductParameters(data)
-    val newParams = existingParams.union(currentFileParams).groupBy("product").agg(sum("count"),sum("sumInvoiceAmount"),sum("sumUsance"),sum("sumEarlyColectionDays"),
-      sum("sumCollectionIncentive"),sum("sumRatioEarlyCollectionDayVsPeriod")).toDF(renameColumns: _*).as[Product]
-    newParams.write.cassandraFormat(product,keyspace)
-  }
-
-  def addFeaturestoInvoice(data: Dataset[Invoice]) = {
-    val existingParams = getProductParameters
-    data.join(existingParams,"product")
+  implicit class ProductFeatures(data: DataFrame) {
+    def addProductFeaturestoInvoice: DataFrame = {
+      val existingParams = getProductParameters
+      data.join(existingParams, Seq("product"),"left_outer")
+    }
   }
 }

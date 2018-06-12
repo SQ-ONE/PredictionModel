@@ -1,8 +1,9 @@
 package com.squareone.bankiq
 
 import com.typesafe.config.ConfigFactory
+import org.apache.spark.ml.PipelineModel
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.ml.regression.RandomForestRegressor
+import org.apache.spark.ml.regression.{RandomForestRegressionModel, RandomForestRegressor}
 
 object RandomForrestModel {
   private val config = ConfigFactory.load("application.conf")
@@ -15,9 +16,9 @@ object RandomForrestModel {
       .setSeed(12345)
       .setImpurity("variance")
 
-    val model: RandomForestRegressor = try{RandomForestRegressor.load(path)} catch {case e: Exception => rfr}
-    val rfrModel = model.fit(trainingData)
-    rfrModel.save(path)
+    val rfrModel = rfr.fit(trainingData)
+
+    rfrModel.write.overwrite().save(path)
 
     rfrModel.transform(testData)
       .select("features", "label", "prediction")

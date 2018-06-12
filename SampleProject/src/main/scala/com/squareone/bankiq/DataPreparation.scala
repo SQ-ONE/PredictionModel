@@ -54,7 +54,7 @@ object DataPreparation {
         .where("rowNumber == 1").drop("rowNumber")
     }
 
-    def convertCatergoryToFrequency(colName: String): DataFrame = {
+    def convertCategoryToFrequency(colName: String): DataFrame = {
       val categoryMap = data.groupBy(colName).count().collect
         .foldLeft(Map.empty: Map[String,Double]){(memoMap,row) => memoMap + (row(0).toString -> row(1).toString.toDouble)}
       val convertCategory = udf {(make: String) =>
