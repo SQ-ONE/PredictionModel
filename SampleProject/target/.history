@@ -1,4 +1,0 @@
-build
-sbt build
-build
-run
