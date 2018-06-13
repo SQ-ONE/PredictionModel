@@ -6,8 +6,10 @@ import com.squareone.bankiq.ModelEvaluator._
 import com.squareone.bankiq.NormalizeFuctions._
 import com.squareone.bankiq.FeatureComputation._
 import com.squareone.bankiq.DataWrangling._
+import org.slf4j.{Logger, LoggerFactory}
 
 object Model5 {
+  private val logger: Logger = LoggerFactory.getLogger("model5")
   def apply(preparedData: DataFrame) = {
     val monthAdded = preparedData.getMonthFromDate("due_date","invoice_date")
       .drop("invoice_date","discounting_date","collection_date","due_date").cache()
@@ -52,8 +54,9 @@ object Model5 {
 
     val resultNormValidatedRFR = RandomForrestModel(normTrainingData,normTestData)
     resultNormValidatedRFR.show()
-    println(resultNormValidatedRFR.getRMSE)
-    println(resultNormValidatedRFR.getR2)
-    println(resultNormValidatedRFR.getMAE)
+
+    logger.info(resultNormValidatedRFR.getRMSE.toString)
+    logger.info(resultNormValidatedRFR.getR2.toString)
+    logger.info(resultNormValidatedRFR.getMAE.toString)
   }
 }

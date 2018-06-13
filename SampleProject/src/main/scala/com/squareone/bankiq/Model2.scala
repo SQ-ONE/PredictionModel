@@ -46,7 +46,5 @@ object Model2 {
       val normTestData = splitNormData(1)
 
       val resultNormValidatedRFR = RandomForrestModel(normTrainingData,normTestData)
-    resultNormValidatedRFR.show()
-      println(resultNormValidatedRFR.getRMSE)
   }
 }

@@ -70,7 +70,6 @@ object Model1 {
 
       val resultNormValidatedLR = TrainValidationForLR(normTrainingData,normTestData)
       resultNormValidatedLR.show()
-      println(resultNormValidatedLR.getRMSE)
   }
 
 }

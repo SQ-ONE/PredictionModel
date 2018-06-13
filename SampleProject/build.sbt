@@ -11,9 +11,6 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.3.0"
-
-
 libraryDependencies += "com.typesafe" % "config" % "1.3.3"
-
-
 libraryDependencies += "com.datastax.spark" %% "spark-cassandra-connector" % "2.3.0"
+libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.25"

@@ -4,7 +4,7 @@
 		module="sampleproject_2.11"
 		revision="1.0"
 		status="integration"
-		publication="20180520182103"
+		publication="20180613091739"
 	>
 		<description>
 		SampleProject
@@ -39,5 +39,6 @@
 		<dependency org="org.apache.spark" name="spark-mllib_2.11" rev="2.3.0" conf="compile->default(compile)"/>
 		<dependency org="com.typesafe" name="config" rev="1.3.3" conf="compile->default(compile)"/>
 		<dependency org="com.datastax.spark" name="spark-cassandra-connector_2.11" rev="2.3.0" conf="compile->default(compile)"/>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.25" conf="compile->default(compile)"/>
 	</dependencies>
 </ivy-module>

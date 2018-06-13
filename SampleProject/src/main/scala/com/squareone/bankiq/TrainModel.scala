@@ -30,8 +30,6 @@ object TrainModel {
 
   val relevantData = file.toDF().deleteRowsWithNull("collection_date").removeRepitition("invoice_no","invoice_amount")
 
-  println(relevantData.count())
-
   val cleanData: DataFrame = relevantData.removeAllSpaces
     .removeHyphen("balance_os", "collection_incentive_on_amount_received", "net_amount_received")
     .removePercent("rate")
@@ -47,16 +45,9 @@ object TrainModel {
 
   val dataInMIS = wrangledData.as[MIS]
 
-  /*  val abs = udf{(value: Double ) => if(value > 0.00)value else (-1.00 * value)}
-      println(dataInMIS.toDF().select("early_collection_days").withColumn("abs_early_collection_days",abs(dataInMIS("early_collection_days")))
-      .drop("early_collection_days").rdd.map(_(0).asInstanceOf[Double]).reduce(_+_))
-    println(dataInMIS.toDF().count)*/
-
   val preparedData: DataFrame =  dataInMIS.toDF()
     .convertLowerCase("region")
     .convertRegionToNumeric("region")
-
-  preparedData.show()
 
   //------------------Model #1 - Analysis Without Dates---------------------------------------
   /*  val dataForModel1 = preparedData.drop("dealer_name","sr_no","rec")

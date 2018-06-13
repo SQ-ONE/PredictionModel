@@ -22,7 +22,7 @@ object ReturnOutput {
       .addDealerFeaturestoInvoice.addManagerFeaturestoInvoice.addProductFeaturestoInvoice
       .addDueMonthFeaturestoInvoice.addInvoiceMonthFeaturestoInvoice
 
-    val inputData = featuredData.select("discounting_tenure","invoice_amount","rate","region","month_due_date","month_invoice_date","dealer_count",
+    val selectedData = featuredData.select("discounting_tenure","invoice_amount","rate","region","month_due_date","month_invoice_date","dealer_count",
       "dealer_cum_invoice_amount","dealer_cum_usance_till_collection_days","dealer_cum_early_collection_days",
       "dealer_cum_collection_incentive_on_amount_received","product_count","product_cum_invoice_amount"
       ,"product_cum_usance_till_collection_days","product_cum_early_collection_days","product_cum_collection_incentive_on_amount_received"
@@ -31,6 +31,8 @@ object ReturnOutput {
       ,"due_month_cum_usance_till_collection_days","due_month_cum_early_collection_days","due_month_cum_collection_incentive_on_amount_received"
       ,"invoice_month_count","invoice_month_cum_invoice_amount","invoice_month_cum_usance_till_invoice_days","invoice_month_cum_early_invoice_days"
       ,"invoice_month_cum_invoice_incentive_on_amount_received").parseAllColumnsAsDouble(0.00)
+
+    val inputData = selectedData.limitDecimal(selectedData.columns: _*)
 
     val assembler = new VectorAssembler()
       .setInputCols(inputData.columns)
