@@ -15,8 +15,6 @@ object Model2 {
       .cumSumWithGroupBy("early_collection_days","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")()
       .cumRatio("early_collection_days","discounting_tenure")()
 
-    featuredData.show(5)
-
     val data = featuredData.drop("invoice_no","payer","balance_os","collection_incentive_on_amount_received",
       "disc_chrges_for_discouting_tenure","gross_collection","net_amount_received","usance_till_collection_days")
 

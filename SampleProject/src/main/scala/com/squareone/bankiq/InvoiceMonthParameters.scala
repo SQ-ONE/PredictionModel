@@ -31,16 +31,16 @@ object InvoiceMonthParameters {
   }
 
   implicit class ComputeInvoiceMonth(data: Dataset[MIS]) {
-    def currentInvoiceMonthParameters: Dataset[InvoiceMonth] = {
+    def currentInvoiceMonthParameters(data: Dataset[MIS]): Dataset[InvoiceMonth] = {
       val fileParameters = data.toDF().calRatio("early_collection_days", "discounting_tenure")
         .calCondition("early_collection_days", x => if (x > 0) x else 0).getMonthFromDate("invoice_date").groupBy("month_invoice_date").agg(count("invoice_no")
         , sum ("invoice_amount"), sum ("usance_till_collection_days"), sum ("early_collection_days"), sum ("collection_incentive_on_amount_received")
         , sum ("ratio_early_collection_days_discounting_tenure"), sum ("condition_early_collection_days"))
         fileParameters.limitDecimal (fileParameters.columns.filter (_ != "month_invoice_date"): _*).toDF (renameColumns: _*).as[InvoiceMonth]
       }
-    def updateInvoiceMonthParameters = {
+    def updateInvoiceMonthParameters(data: Dataset[MIS]): Unit = {
         val existingParams = getInvoiceMonthParameters
-        val currentFileParams = currentInvoiceMonthParameters
+        val currentFileParams = currentInvoiceMonthParameters(data)
         val newParams = existingParams.union (currentFileParams).groupBy("month_invoice_date").agg (sum ("invoice_month_count")
         , sum ("invoice_month_cum_invoice_amount"), sum ("invoice_month_cum_usance_till_invoice_days")
         , sum ("invoice_month_cum_early_invoice_days"), sum ("invoice_month_cum_invoice_incentive_on_amount_received")

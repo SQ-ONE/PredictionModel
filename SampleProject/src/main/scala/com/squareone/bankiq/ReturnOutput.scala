@@ -12,8 +12,10 @@ import com.squareone.bankiq.DataWrangling._
 import com.typesafe.config.ConfigFactory
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.regression.{RandomForestRegressionModel, RandomForestRegressor}
+import org.slf4j.{Logger, LoggerFactory}
 
 object ReturnOutput {
+  private val logger: Logger = LoggerFactory.getLogger("ReturnOutput")
   private val config = ConfigFactory.load("application.conf")
   val path = config.getConfig("filePaths").getString("savedModelFilePath")
 
@@ -42,7 +44,7 @@ object ReturnOutput {
 
     try{val model = RandomForestRegressionModel.load(path)
     val result = model.transform(vectorizedData)
-    result.show
-    } catch {case e: Exception => println(s"Model cannot be loaded $e")}
+    result
+    } catch {case e: Exception => logger.info(s"Model cannot be loaded $e")}
   }
 }

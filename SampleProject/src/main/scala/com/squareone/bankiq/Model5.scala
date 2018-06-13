@@ -36,8 +36,6 @@ object Model5 {
 
     val data = dataCrude.limitDecimal(dataCrude.columns: _*)
 
-    data.show
-
     val assembler = new VectorAssembler()
       .setInputCols(data.columns.filter(x => x != "label"))
       .setOutputCol("features")
@@ -53,7 +51,6 @@ object Model5 {
     val normTestData = splitNormData(1)
 
     val resultNormValidatedRFR = RandomForrestModel(normTrainingData,normTestData)
-    resultNormValidatedRFR.show()
 
     logger.info(resultNormValidatedRFR.getRMSE.toString)
     logger.info(resultNormValidatedRFR.getR2.toString)

@@ -22,10 +22,10 @@ object DealerParameters {
     ,"dealer_cum_collection_incentive_on_amount_received","dealer_cum_ratio_early_collection_days_discounting_tenure","dealer_cum_delayed_days")
 
   def getDealerParameters: Dataset[Dealer] = {
-    try(spark.read.cassandraFormat(dealer, keyspace).load().as[Dealer]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Dealer])}
+    try{spark.read.cassandraFormat(dealer, keyspace).load().as[Dealer]} catch { case e: Exception => spark.createDataset(sc.emptyRDD[Dealer])}
   }
   implicit class ComputeDealer(data: Dataset[MIS]) {
-    def currentDealerParameters(data: Dataset[MIS]) = {
+    def currentDealerParameters(data: Dataset[MIS]): Dataset[Dealer] = {
 
       val fileParameters = data.toDF().calRatio("early_collection_days", "discounting_tenure")
         .calCondition("early_collection_days", x => if (x > 0) x else 0).groupBy("payer").agg(count("invoice_no")
@@ -33,7 +33,7 @@ object DealerParameters {
         , sum("ratio_early_collection_days_discounting_tenure"), sum("condition_early_collection_days"))
       fileParameters.limitDecimal(fileParameters.columns.filter(_ != "payer"): _*).toDF(renameColumns: _*).as[Dealer]
     }
-    def updateDealerParameters(data: Dataset[MIS]) = {
+    def updateDealerParameters(data: Dataset[MIS]): Unit = {
       val existingParams = getDealerParameters
       val currentFileParams = currentDealerParameters(data)
       val newParams = existingParams.union(currentFileParams).groupBy("payer").agg(sum("dealer_count"), sum("dealer_cum_invoice_amount")

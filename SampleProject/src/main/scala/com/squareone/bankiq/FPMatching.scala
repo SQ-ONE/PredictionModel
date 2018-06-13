@@ -6,6 +6,7 @@ import org.apache.spark.sql.functions._
 
 object FPMatching {
   def apply(data: DataFrame){
+    // Only used for testing model. Not part of the code
     val dataRenamed = data.toDF("X","Y")
     def convertToArray = udf{(x: Double,y: Double) =>
       Array(x,y)}

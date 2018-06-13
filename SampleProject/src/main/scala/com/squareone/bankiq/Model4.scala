@@ -18,15 +18,11 @@ object Model4 {
     //.sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)()
     //.withColumnRenamed("dealer_count_invoice_amount","dealer_count").withColumnRenamed("dealer_cum_condition_early_collection_days","dealer_cum_delayed_days")
 
-    featuredData.show(5)
-
     val productBasedFeatures = featuredData.countWithGroupBy("invoice_amount")(3)
       .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")(3)
     //.cumRatio("early_collection_days","discounting_tenure")(3)
     //.sumBasedOnCondition("early_collection_days",x => if( x > 0.00)x else 0.00)(3)
     //.withColumnRenamed("product_count_invoice_amount","product_count").withColumnRenamed("product_cum_condition_early_collection_days","product_cum_delayed_days")
-
-    productBasedFeatures.show(5)
 
     val managerBasedFeatures = productBasedFeatures.countWithGroupBy("invoice_amount")(4)
       .cumSumWithGroupBy("invoice_amount","usance_till_collection_days","early_collection_days","collection_incentive_on_amount_received")(4)

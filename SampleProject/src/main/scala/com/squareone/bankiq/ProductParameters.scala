@@ -21,7 +21,7 @@ object ProductParameters {
     ,"product_cum_collection_incentive_on_amount_received","product_cum_ratio_early_collection_days_discounting_tenure","product_cum_delayed_days")
 
   def getProductParameters: Dataset[Product] = {
-    try(spark.read.cassandraFormat(product, keyspace).load().as[Product]) catch { case e: Exception => spark.createDataset(sc.emptyRDD[Product])}
+    try{spark.read.cassandraFormat(product, keyspace).load().as[Product]} catch { case e: Exception => spark.createDataset(sc.emptyRDD[Product])}
   }
   implicit class ComputeProduct(data: Dataset[MIS]){
     def currentProductParameters(data: Dataset[MIS]): Dataset[Product] = {
